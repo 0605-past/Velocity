@@ -50,11 +50,17 @@ namespace Pseudo3DRacer
             RenderCar(g, width, height, trackCurvature, this.PlayerCurvature, Brushes.Red, fLeanAngle, CurrentSteerDir);
         }
 
-        public void RenderRemote(Graphics g, int width, int height, float trackCurvature, float remotePlayerCurvature, int remoteSteerDir)
+        private static readonly Color[] RemoteColors = { Color.Gold, Color.Cyan, Color.Magenta };
+
+        public void RenderRemote(Graphics g, int width, int height, float trackCurvature, NetworkPlayer player)
         {
-            // 遠端玩家車輛同樣模擬平滑傾斜
-            float remoteLean = remoteSteerDir * 0.06f;
-            RenderCar(g, width, height, trackCurvature, remotePlayerCurvature, Brushes.Gold, remoteLean, remoteSteerDir);
+            if (!player.Connected) return;
+            float remoteLean = player.SteerDir * 0.06f;
+            int colorIndex = (player.Id - 1) % RemoteColors.Length;
+            using (Brush brush = new SolidBrush(RemoteColors[colorIndex]))
+            {
+                RenderCar(g, width, height, trackCurvature, player.PlayerCurvature, brush, remoteLean, player.SteerDir);
+            }
         }
 
         private void RenderCar(Graphics g, int width, int height, float trackCurvature, float carCurvature, Brush carBrush, float leanAngle, int steerDir)

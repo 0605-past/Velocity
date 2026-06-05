@@ -15,7 +15,7 @@ namespace Pseudo3DRacer
         }
     }
 
-    public class Track
+    public class Track : IDisposable
     {
         public List<TrackSection> Sections { get; private set; } = new List<TrackSection>();
         public float TotalDistance { get; private set; }
@@ -25,6 +25,7 @@ namespace Pseudo3DRacer
         private Color skyColorBottom = Color.RoyalBlue;
         private Brush grassColorBright = Brushes.LimeGreen;
         private Brush grassColorDark = Brushes.Green;
+        private bool ownsBright, ownsDark;
 
         private List<PointF> mapPoints = new List<PointF>();
         private float mapMinX, mapMaxX, mapMinY, mapMaxY;
@@ -36,12 +37,15 @@ namespace Pseudo3DRacer
 
         public void SetMap(int mapIndex)
         {
+            if (ownsBright) { grassColorBright.Dispose(); ownsBright = false; }
+            if (ownsDark) { grassColorDark.Dispose(); ownsDark = false; }
+
             Sections.Clear();
             TotalDistance = 0;
 
             if (mapIndex == 0)
             {
-                MapName = "經典新手村 (經典繞圈)";
+                MapName = "經典新手圈 (經典繞圈)";
                 skyColorTop = Color.DeepSkyBlue;
                 skyColorBottom = Color.RoyalBlue;
                 grassColorBright = Brushes.LimeGreen;
@@ -61,6 +65,7 @@ namespace Pseudo3DRacer
                 skyColorBottom = Color.Gold;
                 grassColorBright = new SolidBrush(Color.FromArgb(210, 180, 140));
                 grassColorDark = new SolidBrush(Color.FromArgb(139, 69, 19));
+                ownsBright = ownsDark = true;
 
                 Sections.Add(new TrackSection(0.0f, 600.0f));
                 Sections.Add(new TrackSection(0.3f, 200.0f));
@@ -75,6 +80,7 @@ namespace Pseudo3DRacer
                 skyColorBottom = Color.DarkSlateBlue;
                 grassColorBright = Brushes.DarkGreen;
                 grassColorDark = new SolidBrush(Color.FromArgb(0, 30, 0));
+                ownsDark = true;
 
                 Sections.Add(new TrackSection(0.0f, 100.0f));
                 Sections.Add(new TrackSection(1.5f, 100.0f));
@@ -126,7 +132,7 @@ namespace Pseudo3DRacer
             return (Sections[Math.Max(0, index - 1)].Curvature, Math.Max(0, index - 1));
         }
 
-        public void RenderMiniMap(Graphics g, int screenWidth, float carDistance, bool showRemote, float remoteDistance)
+        public void RenderMiniMap(Graphics g, int screenWidth, float carDistance, (float distance, Color color)[]? remotePlayers)
         {
             int mapSize = 100;
             int padding = 20;
@@ -163,12 +169,18 @@ namespace Pseudo3DRacer
             var oldMode = g.SmoothingMode;
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
 
-            if (showRemote)
+            if (remotePlayers != null)
             {
-                int remoteIndex = (int)((remoteDistance / TotalDistance) * screenPoints.Count);
-                remoteIndex = Math.Max(0, Math.Min(remoteIndex, screenPoints.Count - 1));
-                PointF rPos = screenPoints[remoteIndex];
-                g.FillEllipse(Brushes.Gold, rPos.X - 3, rPos.Y - 3, 6, 6);
+                foreach (var rp in remotePlayers)
+                {
+                    int ri = (int)((rp.distance / TotalDistance) * screenPoints.Count);
+                    ri = Math.Max(0, Math.Min(ri, screenPoints.Count - 1));
+                    PointF rPos = screenPoints[ri];
+                    using (Brush b = new SolidBrush(rp.color))
+                    {
+                        g.FillEllipse(b, rPos.X - 3, rPos.Y - 3, 6, 6);
+                    }
+                }
             }
 
             int playerPointIndex = (int)((carDistance / TotalDistance) * screenPoints.Count);
@@ -223,6 +235,11 @@ namespace Pseudo3DRacer
                 g.FillRectangle(clipBrush, rightClip, rowY, rightGrass - rightClip, 1);
                 g.FillRectangle(grassBrush, rightGrass, rowY, width - rightGrass, 1);
             }
+        }
+        public void Dispose()
+        {
+            if (ownsBright) { grassColorBright.Dispose(); ownsBright = false; }
+            if (ownsDark) { grassColorDark.Dispose(); ownsDark = false; }
         }
     }
 }
