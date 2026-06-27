@@ -1,0 +1,14 @@
+.vs/
+bin/
+obj/
+*.dll
+extracted_Velocity.dll
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.db
+*.log
+Thumbs.db
+.DS_Store
+*.vsidx
